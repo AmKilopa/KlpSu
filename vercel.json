@@ -1,0 +1,21 @@
+{
+  "buildCommand": "cd client && npm install && npm run build",
+  "outputDirectory": "client/dist",
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "/api/$1"
+    },
+    {
+      "src": "/",
+      "dest": "/client/index.html"
+    },
+    {
+      "handle": "filesystem"
+    },
+    {
+      "src": "/(.+)",
+      "dest": "/api/[shortCode]?shortCode=$1"
+    }
+  ]
+}
