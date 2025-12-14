@@ -23,8 +23,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     const existingCode = await findByLongUrl(longUrl);
-    const baseUrl = process.env.VERCEL_URL 
-      ? `https://${process.env.VERCEL_URL}` 
+    const baseUrl = process.env.NODE_ENV === 'production' 
+      ? 'https://klpsu.vercel.app' 
       : 'http://localhost:3000';
 
     if (existingCode) {
