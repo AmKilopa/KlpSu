@@ -1,5 +1,5 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
-import { getUrl, incrementClicks } from './_db';
+import { getUrl, incrementClicks, verifyPassword } from './_db';
 
 const renderLayout = (content: string) => `<!DOCTYPE html>
 <html lang="ru">
@@ -13,29 +13,100 @@ const renderLayout = (content: string) => `<!DOCTYPE html>
 <body class="min-h-screen bg-black flex items-center justify-center p-6">
   <div class="w-full max-w-2xl">
     <div class="text-center mb-8">
-      <div class="inline-flex items-center gap-3 mb-6">
-        <div class="p-2.5 bg-emerald-500 rounded-lg">
-          <svg class="w-7 h-7 text-black" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M9 17H7A5 5 0 0 1 7 7h2M15 7h2a5 5 0 1 1 0 10h-2M8 12h8" />
-          </svg>
+      <div class="inline-flex items-center gap-3 mb-3">
+        <div class="relative">
+          <div class="absolute inset-0 rounded-xl bg-emerald-500/40 blur-xl opacity-60"></div>
+          <div class="relative p-2.5 bg-emerald-500 rounded-xl shadow-lg shadow-emerald-500/40">
+            <svg class="w-7 h-7 text-black" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 17H7A5 5 0 0 1 7 7h2M15 7h2a5 5 0 1 1 0 10h-2M8 12h8" />
+            </svg>
+          </div>
         </div>
-        <h1 class="text-6xl font-bold text-white tracking-tight">KlpSu</h1>
+        <h1 class="text-4xl sm:text-5xl font-bold text-white tracking-tight">KlpSu</h1>
       </div>
+      <p class="text-sm text-zinc-500">Профессиональное сокращение ссылок</p>
     </div>
+
     ${content}
-    <div class="text-center mt-8">
-      <p class="text-sm text-gray-600">
-        Нужна помощь? Свяжитесь с поддержкой
-      </p>
-    </div>
   </div>
 </body>
 </html>`;
 
+const renderPasswordPrompt = (shortCode: string, error?: string) =>
+  renderLayout(`
+  <div class="bg-gradient-to-b from-zinc-950 to-zinc-900 rounded-2xl border border-zinc-800/80 overflow-hidden shadow-xl shadow-emerald-500/10">
+    <div class="p-8 sm:p-12 text-center space-y-6">
+      <div class="inline-flex items-center justify-center w-20 h-20 bg-emerald-500/10 rounded-full border-2 border-emerald-500/50">
+        <svg class="w-10 h-10 text-emerald-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" />
+        </svg>
+      </div>
+      <div class="space-y-3">
+        <h2 class="text-3xl sm:text-4xl font-bold text-white">Защищено паролем</h2>
+        <p class="text-base sm:text-lg text-gray-400 font-medium">Эта ссылка требует пароль</p>
+        <p class="text-xs sm:text-sm text-gray-500 max-w-md mx-auto">
+          Введите пароль для доступа к содержимому.
+        </p>
+      </div>
+
+      <form method="POST" action="/${shortCode}" class="max-w-md mx-auto pt-4 space-y-4">
+        ${error ? `
+          <div class="bg-red-500/10 border border-red-500/50 rounded-md p-3">
+            <p class="text-red-400 text-xs sm:text-sm font-medium">${error}</p>
+          </div>
+        ` : ''}
+        <input
+          type="password"
+          name="password"
+          placeholder="Введите пароль"
+          required
+          autofocus
+          class="w-full px-4 py-3 bg-black text-gray-200 border border-zinc-800 rounded-md focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/40 transition-colors placeholder:text-gray-600 text-sm text-center"
+        />
+        <button
+          type="submit"
+          class="w-full bg-emerald-500 text-black px-6 py-3 rounded-xl font-semibold hover:bg-emerald-400 active:bg-emerald-600 transition-colors text-sm sm:text-base"
+        >
+          Открыть ссылку
+        </button>
+      </form>
+    </div>
+  </div>
+`);
+
+const renderRedirectWithMessage = (targetUrl: string) =>
+  renderLayout(`
+  <div class="bg-gradient-to-b from-zinc-950 to-zinc-900 rounded-2xl border border-zinc-800/80 overflow-hidden shadow-xl shadow-emerald-500/10">
+    <div class="p-8 sm:p-12 text-center space-y-4">
+      <div class="inline-flex items-center justify-center w-16 h-16 bg-emerald-500/10 rounded-full border border-emerald-500/60">
+        <svg class="w-8 h-8 text-emerald-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="m5 12 4.5 4.5L19 7.5" />
+        </svg>
+      </div>
+      <h2 class="text-2xl sm:text-3xl font-semibold text-white">Пароль верный</h2>
+      <p class="text-sm sm:text-base text-gray-400">
+        Перенаправляем по ссылке...
+      </p>
+      <p class="text-xs text-zinc-600 break-all mt-2">
+        ${targetUrl}
+      </p>
+      <p class="text-[11px] text-zinc-500 mt-4">
+        Если переадресация не произошла автоматически, нажмите
+        <a href="${targetUrl}" class="text-emerald-400 hover:text-emerald-300 underline-offset-2 underline">сюда</a>.
+      </p>
+    </div>
+  </div>
+  <script>
+    setTimeout(function () {
+      window.location.replace(${JSON.stringify(targetUrl)});
+    }, 800);
+  </script>
+`);
+
 const renderNotFound = () =>
   renderLayout(`
-  <div class="bg-zinc-900 rounded-lg border border-zinc-800 overflow-hidden">
-    <div class="p-12 text-center space-y-6">
+  <div class="bg-gradient-to-b from-zinc-950 to-zinc-900 rounded-2xl border border-zinc-800/80 overflow-hidden shadow-xl shadow-red-500/10">
+    <div class="p-8 sm:p-12 text-center space-y-6">
       <div class="inline-flex items-center justify-center w-20 h-20 bg-red-500/10 rounded-full border-2 border-red-500/50">
         <svg class="w-10 h-10 text-red-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
           <circle cx="12" cy="12" r="10" />
@@ -43,17 +114,16 @@ const renderNotFound = () =>
         </svg>
       </div>
       <div class="space-y-3">
-        <h2 class="text-4xl font-bold text-white">404</h2>
-        <p class="text-xl text-gray-400 font-medium">Ссылка не найдена</p>
-        <p class="text-sm text-gray-500 max-w-md mx-auto">
-          Эта короткая ссылка не существует или была удалена.
-          Проверьте правильность ссылки или создайте новую.
+        <h2 class="text-3xl sm:text-4xl font-bold text-white">404</h2>
+        <p class="text-lg sm:text-xl text-gray-400 font-medium">Ссылка не найдена</p>
+        <p class="text-xs sm:text-sm text-gray-500 max-w-md mx-auto">
+          Эта короткая ссылка не существует или была удалена. Проверьте правильность ссылки или создайте новую.
         </p>
       </div>
       <div class="pt-4">
         <a
           href="/"
-          class="inline-flex items-center gap-2 bg-emerald-500 text-black px-6 py-3 rounded-md font-semibold hover:bg-emerald-400 transition-colors"
+          class="inline-flex items-center gap-2 bg-emerald-500 text-black px-6 py-3 rounded-xl font-semibold hover:bg-emerald-400 transition-colors text-sm"
         >
           <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
@@ -67,8 +137,8 @@ const renderNotFound = () =>
 
 const renderExpired = (expiresAt?: string | null) =>
   renderLayout(`
-  <div class="bg-zinc-900 rounded-lg border border-zinc-800 overflow-hidden">
-    <div class="p-12 text-center space-y-6">
+  <div class="bg-gradient-to-b from-zinc-950 to-zinc-900 rounded-2xl border border-zinc-800/80 overflow-hidden shadow-xl shadow-orange-500/10">
+    <div class="p-8 sm:p-12 text-center space-y-6">
       <div class="inline-flex items-center justify-center w-20 h-20 bg-orange-500/10 rounded-full border-2 border-orange-500/50">
         <svg class="w-10 h-10 text-orange-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
           <circle cx="12" cy="12" r="10" />
@@ -76,13 +146,13 @@ const renderExpired = (expiresAt?: string | null) =>
         </svg>
       </div>
       <div class="space-y-3">
-        <h2 class="text-4xl font-bold text-white">Срок истек</h2>
-        <p class="text-xl text-gray-400 font-medium">Срок действия ссылки истек</p>
-        <p class="text-sm text-gray-500 max-w-md mx-auto">
+        <h2 class="text-3xl sm:text-4xl font-bold text-white">Срок истек</h2>
+        <p class="text-lg sm:text-xl text-gray-400 font-medium">Срок действия ссылки истек</p>
+        <p class="text-xs sm:text-sm text-gray-500 max-w-md mx-auto">
           ${
             expiresAt
               ? `Эта ссылка была активна до <span class="text-orange-400 font-medium">${new Date(
-                  expiresAt
+                  expiresAt,
                 ).toLocaleString('ru-RU')}</span>.`
               : 'Эта ссылка больше не активна.'
           }
@@ -92,7 +162,7 @@ const renderExpired = (expiresAt?: string | null) =>
       <div class="pt-4">
         <a
           href="/"
-          class="inline-flex items-center gap-2 bg-emerald-500 text-black px-6 py-3 rounded-md font-semibold hover:bg-emerald-400 transition-colors"
+          class="inline-flex items-center gap-2 bg-emerald-500 text-black px-6 py-3 rounded-xl font-semibold hover:bg-emerald-400 transition-colors text-sm"
         >
           <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
@@ -106,33 +176,33 @@ const renderExpired = (expiresAt?: string | null) =>
 
 const renderMaxClicks = (clicks: number, maxClicks: number) =>
   renderLayout(`
-  <div class="bg-zinc-900 rounded-lg border border-zinc-800 overflow-hidden">
-    <div class="p-12 text-center space-y-6">
+  <div class="bg-gradient-to-b from-zinc-950 to-zinc-900 rounded-2xl border border-zinc-800/80 overflow-hidden shadow-xl shadow-yellow-500/10">
+    <div class="p-8 sm:p-12 text-center space-y-6">
       <div class="inline-flex items-center justify-center w-20 h-20 bg-yellow-500/10 rounded-full border-2 border-yellow-500/50">
         <svg class="w-10 h-10 text-yellow-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z" />
         </svg>
       </div>
       <div class="space-y-3">
-        <h2 class="text-4xl font-bold text-white">Лимит исчерпан</h2>
-        <p class="text-xl text-gray-400 font-medium">Достигнут максимум кликов</p>
-        <p class="text-sm text-gray-500 max-w-md mx-auto">
+        <h2 class="text-3xl sm:text-4xl font-bold text-white">Лимит исчерпан</h2>
+        <p class="text-lg sm:text-xl text-gray-400 font-medium">Достигнут максимум кликов</p>
+        <p class="text-xs sm:text-sm text-gray-500 max-w-md mx-auto">
           Эта ссылка достигла максимального количества переходов. Создайте новую ссылку для продолжения.
         </p>
         <div class="bg-black rounded-lg border border-zinc-800 p-4 inline-block mt-4">
           <p class="text-3xl font-bold text-yellow-500">${clicks} / ${maxClicks}</p>
-          <p class="text-xs text-gray-500 mt-1 uppercase tracking-wider">Кликов использовано</p>
+          <p class="text-[11px] text-gray-500 mt-1 uppercase tracking-wider">Кликов использовано</p>
         </div>
       </div>
       <div class="pt-4">
         <a
           href="/"
-          class="inline-flex items-center gap-2 bg-emerald-500 text-black px-6 py-3 rounded-md font-semibold hover:bg-emerald-400 transition-colors"
+          class="inline-flex items-center gap-2 bg-emerald-500 text-black px-6 py-3 rounded-xl font-semibold hover:bg-emerald-400 transition-colors text-sm"
         >
           <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-        </svg>
-        Вернуться на главную
+          </svg>
+          Вернуться на главную
         </a>
       </div>
     </div>
@@ -167,8 +237,41 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         .send(renderMaxClicks(urlData.clicks, urlData.maxClicks || 0));
     }
 
-    await incrementClicks(shortCode);
+    if (urlData.hasPassword) {
+      if (req.method === 'POST') {
+        const body = req.body;
+        const password =
+          typeof body === 'string'
+            ? new URLSearchParams(body).get('password')
+            : body?.password;
 
+        if (!password) {
+          res.setHeader('Content-Type', 'text/html; charset=utf-8');
+          return res
+            .status(401)
+            .send(renderPasswordPrompt(shortCode, 'Введите пароль'));
+        }
+
+        const isValid = await verifyPassword(shortCode, password);
+
+        if (!isValid) {
+          res.setHeader('Content-Type', 'text/html; charset=utf-8');
+          return res
+            .status(401)
+            .send(renderPasswordPrompt(shortCode, 'Неверный пароль'));
+        }
+
+        await incrementClicks(shortCode);
+        res.setHeader('Content-Type', 'text/html; charset=utf-8');
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+        return res.status(200).send(renderRedirectWithMessage(urlData.longUrl));
+      }
+
+      res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      return res.status(200).send(renderPasswordPrompt(shortCode));
+    }
+
+    await incrementClicks(shortCode);
     res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
     return res.redirect(308, urlData.longUrl);
   } catch {

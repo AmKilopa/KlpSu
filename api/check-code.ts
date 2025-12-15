@@ -1,4 +1,4 @@
-import { VercelRequest, VercelResponse } from '@vercel/node';
+import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { checkCodeExists } from './_db';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -15,10 +15,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const { shortCode } = req.body;
+    const { shortCode } = req.body as { shortCode?: string };
 
     if (!shortCode || typeof shortCode !== 'string') {
       return res.status(400).json({ error: 'Short code is required' });
+    }
+
+    if (shortCode.length !== 6) {
+      return res.status(400).json({ error: 'Short code must be 6 characters' });
     }
 
     const exists = await checkCodeExists(shortCode);

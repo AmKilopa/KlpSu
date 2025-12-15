@@ -35,6 +35,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         createdAt: code.createdAt,
         expiresAt: code.expiresAt,
         maxClicks: code.maxClicks,
+        hasPassword: code.hasPassword,
         isExpired: code.isExpired,
         isMaxedOut: code.isMaxedOut
       }))

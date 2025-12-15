@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import bcrypt from 'bcryptjs';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -14,7 +15,8 @@ export async function saveUrl(
   shortCode: string, 
   longUrl: string, 
   expiresIn?: string, 
-  maxClicks?: number
+  maxClicks?: number,
+  password?: string
 ) {
   let expiresAt: string | null = null;
   
@@ -33,6 +35,11 @@ export async function saveUrl(
     }
   }
 
+  let hashedPassword: string | null = null;
+  if (password) {
+    hashedPassword = await bcrypt.hash(password, 10);
+  }
+
   const { error } = await supabase
     .from('urls')
     .insert({ 
@@ -40,7 +47,8 @@ export async function saveUrl(
       long_url: longUrl,
       clicks: 0,
       expires_at: expiresAt,
-      max_clicks: maxClicks
+      max_clicks: maxClicks,
+      password: hashedPassword
     });
   
   if (error) throw error;
@@ -49,7 +57,7 @@ export async function saveUrl(
 export async function getUrl(shortCode: string) {
   const { data, error } = await supabase
     .from('urls')
-    .select('long_url, clicks, created_at, expires_at, max_clicks')
+    .select('long_url, clicks, created_at, expires_at, max_clicks, password')
     .eq('short_code', shortCode)
     .single();
   
@@ -64,15 +72,24 @@ export async function getUrl(shortCode: string) {
     createdAt: data.created_at,
     expiresAt: data.expires_at,
     maxClicks: data.max_clicks,
+    password: data.password,
+    hasPassword: !!data.password,
     isExpired: expiresAt ? expiresAt < now : false,
     isMaxedOut: data.max_clicks ? data.clicks >= data.max_clicks : false
   };
 }
 
+export async function verifyPassword(shortCode: string, providedPassword: string): Promise<boolean> {
+  const urlData = await getUrl(shortCode);
+  if (!urlData || !urlData.password) return false;
+  
+  return await bcrypt.compare(providedPassword, urlData.password);
+}
+
 export async function findAllByLongUrl(longUrl: string) {
   const { data, error } = await supabase
     .from('urls')
-    .select('short_code, clicks, created_at, expires_at, max_clicks')
+    .select('short_code, clicks, created_at, expires_at, max_clicks, password')
     .eq('long_url', longUrl)
     .order('created_at', { ascending: false })
     .limit(10);
@@ -90,6 +107,7 @@ export async function findAllByLongUrl(longUrl: string) {
       createdAt: item.created_at,
       expiresAt: item.expires_at,
       maxClicks: item.max_clicks,
+      hasPassword: !!item.password,
       isExpired: expiresAt ? expiresAt < now : false,
       isMaxedOut: item.max_clicks ? item.clicks >= item.max_clicks : false
     };

@@ -19,7 +19,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const { shortCode, longUrl, expiresIn, maxClicks } = req.body;
+    const { shortCode, longUrl, expiresIn, maxClicks, password } = req.body;
 
     if (!shortCode || !longUrl) {
       return res.status(400).json({ error: 'Short code and URL are required' });
@@ -30,7 +30,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ error: 'Этот код уже занят' });
     }
 
-    await saveUrl(shortCode, longUrl, expiresIn, maxClicks);
+    await saveUrl(shortCode, longUrl, expiresIn, maxClicks, password);
 
     return res.json({
       shortUrl: `${BASE_URL}/${shortCode}`,

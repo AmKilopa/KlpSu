@@ -10,6 +10,7 @@ export interface UrlVariant {
   createdAt: string;
   expiresAt?: string;
   maxClicks?: number;
+  hasPassword?: boolean;
   isExpired: boolean;
   isMaxedOut: boolean;
 }

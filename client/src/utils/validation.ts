@@ -1,3 +1,5 @@
+const CUSTOM_CODE_REGEX = /^[a-zA-Z0-9_-]{6}$/;
+
 export const isValidUrl = (url: string): boolean => {
   try {
     const urlObj = new URL(url);
@@ -8,5 +10,5 @@ export const isValidUrl = (url: string): boolean => {
 };
 
 export const isValidCustomCode = (code: string): boolean => {
-  return /^[a-zA-Z0-9_-]{6}$/.test(code);
+  return typeof code === 'string' && code.length === 6 && CUSTOM_CODE_REGEX.test(code);
 };
