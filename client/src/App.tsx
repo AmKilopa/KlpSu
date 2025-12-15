@@ -595,7 +595,7 @@ function App() {
             </div>
 
             <a
-              href="https://github.com/AmKilopa"
+              href="https://github.com/AmKilopa/KlpSu"
               target="_blank"
               rel="noopener noreferrer"
               aria-label="Профиль GitHub AmKilopa"
