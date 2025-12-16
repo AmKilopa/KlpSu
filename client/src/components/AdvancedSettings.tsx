@@ -37,9 +37,9 @@ export const AdvancedSettings = ({
         onClick={() => setShowAdvanced(!showAdvanced)}
         aria-expanded={showAdvanced}
         aria-controls="advanced-settings-panel"
-        className="flex items-center gap-2 text-sm font-medium text-gray-400 hover:text-emerald-500 transition-colors touch-manipulation"
+        className="flex items-center gap-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-500 transition-colors touch-manipulation"
       >
-        <div className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-zinc-900 border border-zinc-800">
+        <div className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-gray-200 dark:bg-zinc-900 border border-gray-300 dark:border-zinc-800">
           <ChevronDown
             className={`w-3.5 h-3.5 transition-transform duration-300 ${
               showAdvanced ? 'rotate-180' : ''
@@ -60,13 +60,13 @@ export const AdvancedSettings = ({
           }`}
         >
           <div className="overflow-hidden">
-            <div className="space-y-4 pb-1 rounded-xl border border-zinc-900 bg-black/40 px-3 py-3 sm:px-4 sm:py-4">
+            <div className="space-y-4 pb-1 rounded-xl border border-gray-200 dark:border-zinc-900 bg-gray-50 dark:bg-black/40 px-3 py-3 sm:px-4 sm:py-4">
               <div>
                 <label
                   htmlFor="custom-code-input"
-                  className="flex items-center gap-2 text-sm font-medium text-gray-400 mb-2"
+                  className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-400 mb-2"
                 >
-                  <Sparkles className="w-4 h-4 text-emerald-500" aria-hidden="true" />
+                  <Sparkles className="w-4 h-4 text-emerald-600 dark:text-emerald-500" aria-hidden="true" />
                   <span>Кастомный код</span>
                 </label>
                 <div className="relative">
@@ -79,19 +79,19 @@ export const AdvancedSettings = ({
                     maxLength={6}
                     aria-label="Кастомный код"
                     aria-describedby="custom-code-hint"
-                    className="w-full px-3 sm:px-4 py-2.5 bg-black text-gray-200 border border-zinc-800 rounded-md focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/50 transition-colors placeholder:text-gray-600 font-mono text-sm pr-12 sm:pr-14"
+                    className="w-full px-3 sm:px-4 py-2.5 bg-white dark:bg-black text-gray-900 dark:text-gray-200 border border-gray-300 dark:border-zinc-800 rounded-md focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/50 transition-colors placeholder:text-gray-400 dark:placeholder:text-gray-600 font-mono text-sm pr-12 sm:pr-14"
                   />
                   <div
                     aria-live="polite"
                     aria-atomic="true"
-                    className="absolute right-2 sm:right-3 top-1/2 -translate-y-1/2 text-xs text-gray-600 font-mono pointer-events-none"
+                    className="absolute right-2 sm:right-3 top-1/2 -translate-y-1/2 text-xs text-gray-500 dark:text-gray-600 font-mono pointer-events-none"
                   >
                     {customCode.length}/6
                   </div>
                 </div>
                 <p
                   id="custom-code-hint"
-                  className="text-xs text-gray-600 mt-1.5"
+                  className="text-xs text-gray-500 dark:text-gray-600 mt-1.5"
                 >
                   6 символов, только латиница, цифры, дефис
                 </p>
@@ -101,10 +101,10 @@ export const AdvancedSettings = ({
                 <div>
                   <label
                     htmlFor="expires-in-select"
-                    className="flex items-center gap-2 text-sm font-medium text-gray-400 mb-2"
+                    className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-400 mb-2"
                   >
                     <Calendar
-                      className="w-4 h-4 text-emerald-500"
+                      className="w-4 h-4 text-emerald-600 dark:text-emerald-500"
                       aria-hidden="true"
                     />
                     <span>Срок действия</span>
@@ -114,9 +114,9 @@ export const AdvancedSettings = ({
                     value={expiresIn}
                     onChange={e => setExpiresIn(e.target.value)}
                     aria-label="Срок действия ссылки"
-                    className="w-full px-3 sm:px-4 py-2.5 bg-black text-gray-200 border border-zinc-800 rounded-md focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/50 transition-colors text-sm"
+                    className="w-full px-3 sm:px-4 py-2.5 bg-white dark:bg-black text-gray-900 dark:text-gray-200 border border-gray-300 dark:border-zinc-800 rounded-md focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/50 transition-colors text-sm"
                   >
-                    <option value="option">Без ограничений</option>
+                    <option value="">Без ограничений</option>
                     <option value="1h">1 час</option>
                     <option value="24h">24 часа</option>
                     <option value="7d">7 дней</option>
@@ -127,10 +127,10 @@ export const AdvancedSettings = ({
                 <div>
                   <label
                     htmlFor="max-clicks-input"
-                    className="flex items-center gap-2 text-sm font-medium text-gray-400 mb-2"
+                    className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-400 mb-2"
                   >
                     <Shield
-                      className="w-4 h-4 text-emerald-500"
+                      className="w-4 h-4 text-emerald-600 dark:text-emerald-500"
                       aria-hidden="true"
                     />
                     <span>Макс. кликов</span>
@@ -142,13 +142,13 @@ export const AdvancedSettings = ({
                     onChange={e => setMaxClicks(e.target.value)}
                     placeholder="Без ограничений"
                     aria-label="Максимальное количество кликов"
-                    className="w-full px-3 sm:px-4 py-2.5 bg-black text-gray-200 border border-zinc-800 rounded-md focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/50 transition-colors placeholder:text-gray-600 text-sm"
+                    className="w-full px-3 sm:px-4 py-2.5 bg-white dark:bg-black text-gray-900 dark:text-gray-200 border border-gray-300 dark:border-zinc-800 rounded-md focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/50 transition-colors placeholder:text-gray-400 dark:placeholder:text-gray-600 text-sm"
                     min="1"
                   />
                 </div>
               </div>
 
-              <div className="pt-2 border-t border-zinc-900/80">
+              <div className="pt-2 border-t border-gray-200 dark:border-zinc-900/80">
                 <PasswordProtection
                   password={password}
                   setPassword={setPassword}

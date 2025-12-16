@@ -9,6 +9,7 @@ import { VariantsList } from './components/VariantsList';
 import { SkeletonLoader } from './components/SkeletonLoader';
 import type { UrlVariant, PreviewData } from './types';
 import { isValidUrl, isValidCustomCode } from './utils/validation';
+import { ThemeSwitcher } from './components/ThemeSwitcher';
 
 const API_URL = (import.meta as any).env?.VITE_API_URL ?? '';
 
@@ -69,7 +70,7 @@ function SupabaseIcon() {
 
 function VercelIcon() {
   return (
-    <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 text-white">
+    <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 text-gray-900 dark:text-white">
       <path d="M12 3L22 21H2L12 3Z" fill="currentColor" />
     </svg>
   );
@@ -478,17 +479,19 @@ function App() {
   }, [state.longUrl, updateState, abortVariantsRequest, stopPolling]);
 
   return (
-    <div className="min-h-screen bg-black flex flex-col">
+    <div className="min-h-screen bg-white dark:bg-black flex flex-col">
+      <ThemeSwitcher />
       <Toaster
         position="top-center"
-        theme="dark"
+        theme="light"
         richColors
         toastOptions={{
           style: {
-            background: '#18181b',
-            border: '1px solid #27272a',
-            color: '#f4f4f5',
+            background: '#ffffff',
+            border: '1px solid #e5e7eb',
+            color: '#111827',
           },
+          className: 'dark:!bg-zinc-900 dark:!border-zinc-800 dark:!text-gray-100',
         }}
       />
 
@@ -502,19 +505,19 @@ function App() {
                   <Link2 className="w-6 sm:w-7 h-6 sm:h-7 text-black" strokeWidth={2.5} aria-hidden />
                 </div>
               </div>
-              <h1 className="text-4xl sm:text-6xl font-bold text-white tracking-tight">KlpSu</h1>
+              <h1 className="text-4xl sm:text-6xl font-bold text-gray-900 dark:text-white tracking-tight">KlpSu</h1>
             </div>
-            <p className="text-gray-500 text-sm sm:text-base font-medium">
+            <p className="text-gray-600 dark:text-gray-500 text-sm sm:text-base font-medium">
               Профессиональное сокращение ссылок
             </p>
           </div>
 
-          <div className="bg-gradient-to-b from-zinc-950 to-zinc-900 rounded-2xl border border-zinc-800/80 overflow-hidden shadow-xl shadow-emerald-500/15">
+          <div className="bg-gradient-to-b from-gray-50 to-white dark:from-zinc-950 dark:to-zinc-900 rounded-2xl border border-gray-200 dark:border-zinc-800/80 overflow-hidden shadow-xl">
             <div className="p-4 sm:p-8 space-y-4 sm:space-y-5">
               <div>
                 <label
                   htmlFor="long-url-input"
-                  className="block text-sm font-medium text-gray-400 mb-2"
+                  className="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-2"
                 >
                   Длинная ссылка
                 </label>
@@ -533,9 +536,8 @@ function App() {
                     aria-label="Введите длинную ссылку для сокращения"
                     aria-invalid={state.error ? 'true' : 'false'}
                     aria-describedby={state.error ? 'url-error' : undefined}
-                    className="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-black/80 text-gray-200 border border-zinc-800 rounded-lg focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/40 transition-colors placeholder:text-gray-600 font-mono text-xs sm:text-sm"
+                    className="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-white dark:bg-black/80 text-gray-900 dark:text-gray-200 border border-gray-300 dark:border-zinc-800 rounded-lg focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/40 transition-colors placeholder:text-gray-400 dark:placeholder:text-gray-600 font-mono text-xs sm:text-sm"
                   />
-                  <div className="pointer-events-none absolute inset-0 rounded-lg ring-1 ring-white/5" />
                 </div>
               </div>
 
@@ -562,7 +564,7 @@ function App() {
                     aria-label={
                       state.variants.length > 0 ? 'Создать еще один вариант' : 'Сократить ссылку'
                     }
-                    className="group w-full px-6 py-3 bg-emerald-500 text-black rounded-xl font-semibold shadow-md shadow-emerald-500/25 hover:shadow-emerald-500/40 hover:bg-emerald-400 active:bg-emerald-600 disabled:bg-zinc-800 disabled:text-gray-600 disabled:shadow-none transition-all duration-200 text-base touch-manipulation min-h-[44px]"
+                    className="group w-full px-6 py-3 bg-emerald-500 text-black rounded-xl font-semibold shadow-md shadow-emerald-500/25 hover:shadow-emerald-500/40 hover:bg-emerald-400 active:bg-emerald-600 disabled:bg-gray-300 dark:disabled:bg-zinc-800 disabled:text-gray-500 dark:disabled:text-gray-600 disabled:shadow-none transition-all duration-200 text-base touch-manipulation min-h-[44px]"
                   >
                     {state.loading ? (
                       <span className="flex items-center justify-center gap-2">
@@ -587,7 +589,7 @@ function App() {
                   role="alert"
                   className="bg-red-500/10 border border-red-500/50 rounded-md p-3"
                 >
-                  <p className="text-red-400 text-xs sm:text-sm font-medium">{state.error}</p>
+                  <p className="text-red-600 dark:text-red-400 text-xs sm:text-sm font-medium">{state.error}</p>
                 </div>
               )}
 
@@ -617,11 +619,11 @@ function App() {
         </div>
       </div>
 
-      <footer className="border-t border-zinc-900/80 mt-8 sm:mt-12 bg-gradient-to-t from-black via-black/80 to-transparent">
+      <footer className="border-t border-gray-200 dark:border-zinc-900/80 mt-8 sm:mt-12 bg-gradient-to-t from-gray-100 to-white dark:from-black dark:via-black/80 dark:to-transparent">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-5 sm:py-6">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="flex flex-col sm:flex-row sm:items-center sm:gap-3 w-full sm:w-auto">
-              <span className="text-[11px] sm:text-xs text-zinc-500 whitespace-nowrap mb-2 sm:mb-0">
+              <span className="text-[11px] sm:text-xs text-gray-500 dark:text-zinc-500 whitespace-nowrap mb-2 sm:mb-0">
                 Сделано с помощью
               </span>
               <div className="flex flex-wrap items-center gap-2 sm:gap-3">
@@ -631,9 +633,9 @@ function App() {
                     href={tech.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="group inline-flex items-center gap-2 rounded-full border border-zinc-800 bg-zinc-950/80 px-3 py-1.5 text-[11px] sm:text-xs text-gray-400 hover:border-emerald-500/70 hover:text-emerald-400 hover:bg-zinc-900/80 transition-colors shadow-sm shadow-black/40"
+                    className="group inline-flex items-center gap-2 rounded-full border border-gray-300 dark:border-zinc-800 bg-white dark:bg-zinc-950/80 px-3 py-1.5 text-[11px] sm:text-xs text-gray-600 dark:text-gray-400 hover:border-emerald-500/70 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-gray-50 dark:hover:bg-zinc-900/80 transition-colors shadow-sm"
                   >
-                    <div className="flex h-5 w-5 items-center justify-center rounded-full bg-black/80 ring-1 ring-zinc-800 group-hover:ring-emerald-500/60">
+                    <div className="flex h-5 w-5 items-center justify-center rounded-full bg-gray-100 dark:bg-black/80 ring-1 ring-gray-200 dark:ring-zinc-800 group-hover:ring-emerald-500/60">
                       {getTechIcon(tech.key)}
                     </div>
                     <span className="font-medium tracking-tight">{tech.name}</span>
@@ -647,11 +649,11 @@ function App() {
               target="_blank"
               rel="noopener noreferrer"
               aria-label="Профиль GitHub AmKilopa"
-              className="inline-flex items-center gap-2 rounded-full border border-zinc-800 bg-zinc-950/80 px-3.5 py-1.5 text-xs sm:text-sm text-gray-400 hover:border-emerald-500/70 hover:text-emerald-400 hover:bg-zinc-900/80 transition-colors shadow-sm shadow-black/40"
+              className="inline-flex items-center gap-2 rounded-full border border-gray-300 dark:border-zinc-800 bg-white dark:bg-zinc-950/80 px-3.5 py-1.5 text-xs sm:text-sm text-gray-600 dark:text-gray-400 hover:border-emerald-500/70 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-gray-50 dark:hover:bg-zinc-900/80 transition-colors shadow-sm"
             >
               <Github className="w-4 sm:w-5 h-4 sm:h-5" aria-hidden />
               <span className="font-medium">@AmKilopa</span>
-              <span className="ml-1 rounded-full bg-emerald-500/15 text-[10px] px-1.5 py-0.5 text-emerald-400">
+              <span className="ml-1 rounded-full bg-emerald-500/15 text-[10px] px-1.5 py-0.5 text-emerald-600 dark:text-emerald-400">
                 Open source
               </span>
             </a>

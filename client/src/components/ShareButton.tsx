@@ -36,7 +36,7 @@ export const ShareButton = ({ url }: ShareButtonProps) => {
     <button
       onClick={handleShare}
       aria-label="Поделиться ссылкой"
-      className="inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg font-medium transition-colors border border-zinc-700 bg-black/60 text-gray-300 hover:border-emerald-500/70 hover:text-emerald-400 hover:bg-zinc-900 active:bg-zinc-800 min-h-[40px] touch-manipulation"
+      className="inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg font-medium transition-colors border border-gray-300 dark:border-zinc-700 bg-white dark:bg-black/60 text-gray-700 dark:text-gray-300 hover:border-emerald-500/70 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-gray-50 dark:hover:bg-zinc-900 active:bg-gray-100 dark:active:bg-zinc-800 min-h-[40px] touch-manipulation"
     >
       <Share2 className="w-4 h-4" aria-hidden="true" />
     </button>

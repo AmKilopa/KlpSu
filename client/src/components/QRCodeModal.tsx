@@ -102,35 +102,35 @@ export const QRCodeModal = ({ url, onClose }: QRCodeModalProps) => {
 
   return (
     <div
-      className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50 backdrop-blur-sm"
+      className="fixed inset-0 bg-black/80 dark:bg-black/80 flex items-center justify-center p-4 z-50 backdrop-blur-sm"
       onClick={onClose}
       role="dialog"
       aria-modal="true"
       aria-labelledby="qr-modal-title"
     >
       <div
-        className="bg-gradient-to-b from-zinc-950 to-zinc-900 border border-zinc-800/80 rounded-2xl p-6 max-w-sm w-full shadow-2xl shadow-emerald-500/20 space-y-4"
+        className="bg-white dark:bg-gradient-to-b dark:from-zinc-950 dark:to-zinc-900 border border-gray-200 dark:border-zinc-800/80 rounded-2xl p-6 max-w-sm w-full shadow-2xl space-y-4"
         onClick={handleContentClick}
       >
         <div className="flex items-center justify-between">
           <div>
-            <h3 id="qr-modal-title" className="text-lg font-semibold text-white">
+            <h3 id="qr-modal-title" className="text-lg font-semibold text-gray-900 dark:text-white">
               QR код ссылки
             </h3>
-            <p className="text-xs text-zinc-500 mt-0.5">
+            <p className="text-xs text-gray-500 dark:text-zinc-500 mt-0.5">
               Сканируй или скачай для печати
             </p>
           </div>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-white transition-colors p-1.5 rounded-lg hover:bg-zinc-800"
+            className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-zinc-800"
             aria-label="Закрыть"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
-        <div className="bg-white rounded-xl border border-zinc-200/80 mb-1 flex items-center justify-center shadow-inner">
+        <div className="bg-white rounded-xl border border-gray-200 dark:border-zinc-200/80 mb-1 flex items-center justify-center shadow-inner">
           <div className="relative w-[240px] h-[260px] flex flex-col items-center">
             <div className="relative w-[220px] h-[220px]">
               <QRCode
@@ -188,7 +188,7 @@ export const QRCodeModal = ({ url, onClose }: QRCodeModalProps) => {
         <a
           href={url}
           onClick={openShortUrl}
-          className="flex items-center justify-center gap-2 text-xs text-emerald-400 hover:text-emerald-300 transition-colors break-all font-mono"
+          className="flex items-center justify-center gap-2 text-xs text-emerald-600 dark:text-emerald-400 hover:text-emerald-500 dark:hover:text-emerald-300 transition-colors break-all font-mono"
         >
           <Link2 className="w-3 h-3" />
           <span>{url}</span>
