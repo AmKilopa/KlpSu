@@ -1,8 +1,10 @@
 import { Share2 } from 'lucide-react';
 
+
 interface ShareButtonProps {
   url: string;
 }
+
 
 export const ShareButton = ({ url }: ShareButtonProps) => {
   const handleShare = async () => {
@@ -24,6 +26,7 @@ export const ShareButton = ({ url }: ShareButtonProps) => {
       const left = window.screen.width / 2 - width / 2;
       const top = window.screen.height / 2 - height / 2;
 
+
       window.open(
         `https://t.me/share/url?url=${encodeURIComponent(url)}`,
         '_blank',
@@ -32,13 +35,14 @@ export const ShareButton = ({ url }: ShareButtonProps) => {
     }
   };
 
+
   return (
     <button
       onClick={handleShare}
       aria-label="Поделиться ссылкой"
-      className="inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg font-medium transition-colors border border-gray-300 dark:border-zinc-700 bg-white dark:bg-black/60 text-gray-700 dark:text-gray-300 hover:border-emerald-500/70 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-gray-50 dark:hover:bg-zinc-900 active:bg-gray-100 dark:active:bg-zinc-800 min-h-[40px] touch-manipulation"
+      className="px-2.5 py-1.5 rounded-lg font-medium transition-colors border border-gray-300 dark:border-zinc-800 bg-white dark:bg-zinc-950 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-zinc-900 active:bg-gray-100 dark:active:bg-zinc-800 min-h-[36px] touch-manipulation"
     >
-      <Share2 className="w-4 h-4" aria-hidden="true" />
+      <Share2 className="w-3.5 h-3.5" />
     </button>
   );
 };

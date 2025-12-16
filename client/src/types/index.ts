@@ -8,11 +8,13 @@ export interface UrlVariant {
   shortCode: string;
   clicks: number;
   createdAt: string;
-  expiresAt?: string;
-  maxClicks?: number;
-  hasPassword?: boolean;
+  expiresAt: string | null;
+  maxClicks: number | null;
+  hasPassword: boolean;
   isExpired: boolean;
   isMaxedOut: boolean;
+  rank: number;
+  isMostPopular: boolean;
 }
 
 export interface PreviewData {
