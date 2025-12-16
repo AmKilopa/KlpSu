@@ -30,7 +30,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     return res.json({
       shortCode,
-      longUrl: urlData.longUrl,
+      longUrl: urlData.hasPassword ? null : urlData.longUrl,
       clicks: urlData.clicks,
       createdAt: urlData.createdAt,
       expiresAt: urlData.expiresAt,
