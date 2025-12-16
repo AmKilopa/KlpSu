@@ -1,8 +1,8 @@
 import { createClient } from '@supabase/supabase-js';
-import bcrypt from 'bcryptjs';
+import { hash as argon2Hash, verify as argon2Verify } from '@node-rs/argon2';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+const supabaseUrl = process.env.SUPABASE_URL!;
+const supabaseKey = process.env.SUPABASE_SERVICE_KEY!;
 
 const supabase = createClient(supabaseUrl, supabaseKey, {
   auth: { persistSession: false },
@@ -17,6 +17,7 @@ export async function saveUrl(
   expiresIn?: string,
   maxClicks?: number,
   password?: string,
+  securityFlags?: { malicious: number; suspicious: number },
 ) {
   let expiresAt: string | null = null;
 
@@ -37,7 +38,11 @@ export async function saveUrl(
 
   let hashedPassword: string | null = null;
   if (password) {
-    hashedPassword = await bcrypt.hash(password, 10);
+    hashedPassword = await argon2Hash(password, {
+      memoryCost: 19456,
+      timeCost: 2,
+      outputLen: 32,
+    });
   }
 
   const { error } = await supabase.from('urls').insert({
@@ -47,6 +52,9 @@ export async function saveUrl(
     expires_at: expiresAt,
     max_clicks: maxClicks,
     password: hashedPassword,
+    created_at: new Date().toISOString(),
+    security_malicious: securityFlags?.malicious || 0,
+    security_suspicious: securityFlags?.suspicious || 0,
   });
 
   if (error) throw error;
@@ -55,7 +63,7 @@ export async function saveUrl(
 export async function getUrl(shortCode: string) {
   const { data, error } = await supabase
     .from('urls')
-    .select('long_url, clicks, created_at, expires_at, max_clicks, password')
+    .select('long_url, clicks, created_at, expires_at, max_clicks, password, security_malicious, security_suspicious')
     .eq('short_code', shortCode)
     .single();
 
@@ -73,6 +81,8 @@ export async function getUrl(shortCode: string) {
     hasPassword: !!data.password,
     isExpired: expiresAt ? expiresAt < now : false,
     isMaxedOut: data.max_clicks ? data.clicks >= data.max_clicks : false,
+    securityMalicious: data.security_malicious || 0,
+    securitySuspicious: data.security_suspicious || 0,
   };
 }
 
@@ -88,7 +98,11 @@ export async function verifyPassword(
 
   if (error || !data?.password) return false;
 
-  return await bcrypt.compare(providedPassword, data.password);
+  try {
+    return await argon2Verify(data.password, providedPassword);
+  } catch {
+    return false;
+  }
 }
 
 export async function findAllByLongUrl(longUrl: string) {
@@ -138,4 +152,13 @@ export async function deleteUrl(shortCode: string) {
   const { error } = await supabase.from('urls').delete().eq('short_code', shortCode);
 
   if (error) throw error;
+}
+
+export async function logAccess(shortCode: string, ip: string, userAgent: string) {
+  await supabase.from('access_logs').insert({
+    short_code: shortCode,
+    ip_address: ip,
+    user_agent: userAgent,
+    accessed_at: new Date().toISOString(),
+  });
 }
