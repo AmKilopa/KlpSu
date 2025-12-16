@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
 import { Link2, Github } from 'lucide-react';
 import { nanoid } from 'nanoid';
@@ -10,7 +10,7 @@ import { SkeletonLoader } from './components/SkeletonLoader';
 import type { UrlVariant, PreviewData } from './types';
 import { isValidUrl, isValidCustomCode } from './utils/validation';
 
-const API_URL = '';
+const API_URL = (import.meta as any).env?.VITE_API_URL ?? '';
 
 const TECH_LINKS = [
   { name: 'React', url: 'https://react.dev', key: 'react' },
@@ -100,55 +100,42 @@ function App() {
     preview: null,
   });
 
-  const currentTimeRef = useRef(new Date());
-  const variantsIntervalRef = useRef<number>();
-  const apiCancelTokenRef = useRef<AbortController>();
+  const [now, setNow] = useState(() => new Date());
 
-  useEffect(() => {
-    const timer = setInterval(() => {
-      currentTimeRef.current = new Date();
-    }, 1000);
-    return () => clearInterval(timer);
-  }, []);
-
-  useEffect(() => {
-    return () => {
-      if (variantsIntervalRef.current) clearInterval(variantsIntervalRef.current);
-      if (apiCancelTokenRef.current) apiCancelTokenRef.current.abort();
-    };
-  }, []);
+  const variantsIntervalRef = useRef<number | null>(null);
+  const variantsAbortRef = useRef<AbortController | null>(null);
 
   const updateState = useCallback((updates: Partial<AppState>) => {
     setState(prev => ({ ...prev, ...updates }));
   }, []);
 
-  const loadVariants = useCallback(async () => {
-    if (!state.longUrl || state.loadingVariants) return;
-
-    const controller = new AbortController();
-    apiCancelTokenRef.current = controller;
-
-    try {
-      const response = await axios.post(
-        `${API_URL}/api/get-variants`,
-        { longUrl: state.longUrl },
-        { signal: controller.signal },
-      );
-
-      if (response.data.variants) {
-        updateState({ variants: response.data.variants });
-      }
-    } catch (err: any) {
-      if (err.name !== 'CanceledError') {
-        console.error('Load variants error');
-      }
+  const abortVariantsRequest = useCallback(() => {
+    if (variantsAbortRef.current) {
+      variantsAbortRef.current.abort();
+      variantsAbortRef.current = null;
     }
-  }, [state.longUrl, state.loadingVariants, updateState]);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (variantsIntervalRef.current) window.clearInterval(variantsIntervalRef.current);
+      abortVariantsRequest();
+    };
+  }, [abortVariantsRequest]);
+
+  useEffect(() => {
+    if (state.variants.length > 0 && !state.preview) {
+      const t = window.setInterval(() => setNow(new Date()), 1000);
+      return () => window.clearInterval(t);
+    }
+  }, [state.variants.length, state.preview]);
+
+  const baseUrl = useMemo(() => window.location.origin, []);
 
   const checkCodeExists = useCallback(async (code: string): Promise<boolean> => {
     try {
       const response = await axios.post(`${API_URL}/api/check-code`, { shortCode: code });
-      return response.data.exists;
+      return Boolean(response.data?.exists);
     } catch {
       return false;
     }
@@ -171,8 +158,7 @@ function App() {
 
     if (state.customCode && !isValidCustomCode(state.customCode)) {
       updateState({
-        error:
-          'Кастомный код должен содержать ровно 6 символов (буквы, цифры, _ или -)',
+        error: 'Кастомный код должен содержать ровно 6 символов (буквы, цифры, _ или -)',
       });
       toast.error('Некорректный код');
       return false;
@@ -195,9 +181,8 @@ function App() {
         return exists ? null : customCode;
       }
 
-      let code = nanoid(6);
       for (let i = 0; i < 5; i++) {
-        code = nanoid(6);
+        const code = nanoid(6);
         const exists = await checkCodeExists(code);
         if (!exists) return code;
       }
@@ -207,6 +192,30 @@ function App() {
     [checkCodeExists],
   );
 
+  const loadVariants = useCallback(async () => {
+    if (!state.longUrl) return;
+
+    abortVariantsRequest();
+    const controller = new AbortController();
+    variantsAbortRef.current = controller;
+
+    try {
+      const response = await axios.post(
+        `${API_URL}/api/get-variants`,
+        { longUrl: state.longUrl },
+        { signal: controller.signal },
+      );
+
+      if (Array.isArray(response.data?.variants)) {
+        updateState({ variants: response.data.variants });
+      }
+    } catch (err: any) {
+      if (err?.name !== 'CanceledError' && err?.name !== 'AbortError') {
+        console.error('Load variants error');
+      }
+    }
+  }, [state.longUrl, abortVariantsRequest, updateState]);
+
   const handleShorten = useCallback(
     async (forceNew?: boolean) => {
       if (!validateInput()) return;
@@ -215,9 +224,7 @@ function App() {
         updateState({ loading: true, loadingVariants: false, preview: null });
 
         try {
-          const code = await generateUniqueCode(
-            state.customCode ? state.customCode : undefined,
-          );
+          const code = await generateUniqueCode(state.customCode || undefined);
 
           if (!code) {
             updateState({
@@ -230,12 +237,14 @@ function App() {
             return;
           }
 
+          const maxClicksNum = state.maxClicks ? Number.parseInt(state.maxClicks, 10) : undefined;
+
           updateState({
             preview: {
               shortCode: code,
               longUrl: state.longUrl,
               expiresIn: state.expiresIn || undefined,
-              maxClicks: state.maxClicks ? parseInt(state.maxClicks) : undefined,
+              maxClicks: Number.isFinite(maxClicksNum as number) ? maxClicksNum : undefined,
             },
           });
         } finally {
@@ -248,52 +257,72 @@ function App() {
       updateState({ loading: true, loadingVariants: true, preview: null });
 
       try {
-        const response = await axios.post(`${API_URL}/api/get-variants`, {
-          longUrl: state.longUrl,
-        });
+        abortVariantsRequest();
+        const controller = new AbortController();
+        variantsAbortRef.current = controller;
 
-        if (response.data.variants?.length > 0) {
+        const response = await axios.post(
+          `${API_URL}/api/get-variants`,
+          { longUrl: state.longUrl },
+          { signal: controller.signal },
+        );
+
+        if (Array.isArray(response.data?.variants) && response.data.variants.length > 0) {
           updateState({
             variants: response.data.variants,
             loadingVariants: false,
           });
+
           toast.success('Найдены существующие варианты', {
             description: `Найдено ${response.data.variants.length} ${
               response.data.variants.length === 1 ? 'вариант' : 'вариантов'
             }`,
           });
-        } else {
-          const code = await generateUniqueCode(state.customCode || undefined);
-          if (code) {
-            updateState({
-              preview: {
-                shortCode: code,
-                longUrl: state.longUrl,
-                expiresIn: state.expiresIn || undefined,
-                maxClicks: state.maxClicks ? parseInt(state.maxClicks) : undefined,
-              },
-              loadingVariants: false,
-            });
-          } else {
-            updateState({
-              error: 'Не удалось сгенерировать уникальный код',
-              loadingVariants: false,
-            });
-            toast.error('Ошибка генерации');
-          }
+
+          return;
         }
+
+        const code = await generateUniqueCode(state.customCode || undefined);
+        if (!code) {
+          updateState({
+            error: 'Не удалось сгенерировать уникальный код',
+            loadingVariants: false,
+          });
+          toast.error('Ошибка генерации');
+          return;
+        }
+
+        const maxClicksNum = state.maxClicks ? Number.parseInt(state.maxClicks, 10) : undefined;
+
+        updateState({
+          preview: {
+            shortCode: code,
+            longUrl: state.longUrl,
+            expiresIn: state.expiresIn || undefined,
+            maxClicks: Number.isFinite(maxClicksNum as number) ? maxClicksNum : undefined,
+          },
+          loadingVariants: false,
+        });
       } catch {
         const code = await generateUniqueCode(state.customCode || undefined);
         if (code) {
+          const maxClicksNum = state.maxClicks ? Number.parseInt(state.maxClicks, 10) : undefined;
+
           updateState({
             preview: {
               shortCode: code,
               longUrl: state.longUrl,
               expiresIn: state.expiresIn || undefined,
-              maxClicks: state.maxClicks ? parseInt(state.maxClicks) : undefined,
+              maxClicks: Number.isFinite(maxClicksNum as number) ? maxClicksNum : undefined,
             },
             loadingVariants: false,
           });
+        } else {
+          updateState({
+            error: 'Не удалось сгенерировать уникальный код',
+            loadingVariants: false,
+          });
+          toast.error('Ошибка генерации');
         }
       } finally {
         updateState({ loading: false });
@@ -307,59 +336,61 @@ function App() {
       validateInput,
       generateUniqueCode,
       updateState,
+      abortVariantsRequest,
     ],
   );
 
-  const handleApprove = useCallback(
-    async () => {
-      if (!state.preview) return;
+  const handleApprove = useCallback(async () => {
+    if (!state.preview) return;
 
-      updateState({ loading: true, error: '' });
+    updateState({ loading: true, error: '' });
 
-      try {
-        const exists = await checkCodeExists(state.preview.shortCode);
-        if (exists) {
-          updateState({
-            error: 'Этот код уже занят. Пожалуйста, измените код.',
-          });
-          toast.error('Код занят');
-          return;
-        }
-
-        await axios.post(`${API_URL}/api/shorten`, {
-          shortCode: state.preview.shortCode,
-          longUrl: state.preview.longUrl,
-          expiresIn: state.preview.expiresIn,
-          maxClicks: state.preview.maxClicks,
-          password: state.passwordEnabled ? state.password : undefined,
-        });
-
-        toast.success('Ссылка создана!', {
-          description: `${window.location.origin}/${state.preview.shortCode}`,
-        });
-
-        updateState({
-          preview: null,
-          customCode: '',
-          expiresIn: '',
-          maxClicks: '',
-          password: '',
-          passwordEnabled: false,
-          showAdvanced: false,
-        });
-
-        loadVariants();
-      } catch (err: any) {
-        const errorMsg =
-          err.response?.data?.error || 'Ошибка при сокращении ссылки';
-        updateState({ error: errorMsg });
-        toast.error('Ошибка', { description: errorMsg });
-      } finally {
-        updateState({ loading: false });
+    try {
+      const exists = await checkCodeExists(state.preview.shortCode);
+      if (exists) {
+        updateState({ error: 'Этот код уже занят. Пожалуйста, измените код.' });
+        toast.error('Код занят');
+        return;
       }
-    },
-    [state.preview, state.passwordEnabled, state.password, checkCodeExists, loadVariants, updateState],
-  );
+
+      await axios.post(`${API_URL}/api/shorten`, {
+        shortCode: state.preview.shortCode,
+        longUrl: state.preview.longUrl,
+        expiresIn: state.preview.expiresIn,
+        maxClicks: state.preview.maxClicks,
+        password: state.passwordEnabled ? state.password : undefined,
+      });
+
+      toast.success('Ссылка создана!', {
+        description: `${window.location.origin}/${state.preview.shortCode}`,
+      });
+
+      updateState({
+        preview: null,
+        customCode: '',
+        expiresIn: '',
+        maxClicks: '',
+        password: '',
+        passwordEnabled: false,
+        showAdvanced: false,
+      });
+
+      loadVariants();
+    } catch (err: any) {
+      const errorMsg = err?.response?.data?.error || 'Ошибка при сокращении ссылки';
+      updateState({ error: errorMsg });
+      toast.error('Ошибка', { description: errorMsg });
+    } finally {
+      updateState({ loading: false });
+    }
+  }, [
+    state.preview,
+    state.passwordEnabled,
+    state.password,
+    checkCodeExists,
+    loadVariants,
+    updateState,
+  ]);
 
   const handleReject = useCallback(() => {
     updateState({
@@ -379,37 +410,47 @@ function App() {
   }, [updateState]);
 
   const copyToClipboard = useCallback(
-    (url: string, index: number) => {
-      navigator.clipboard.writeText(url);
-      updateState({ copiedIndex: index });
+    async (url: string, index: number) => {
+      try {
+        await navigator.clipboard.writeText(url);
+        updateState({ copiedIndex: index });
 
-      setTimeout(() => {
-        updateState({ copiedIndex: null });
-      }, 2000);
+        window.setTimeout(() => {
+          updateState({ copiedIndex: null });
+        }, 2000);
 
-      toast.success('Скопировано!', { description: url });
+        toast.success('Скопировано!', { description: url });
+      } catch {
+        toast.error('Не удалось скопировать');
+      }
     },
     [updateState],
   );
 
-  const baseUrl = useMemo(() => window.location.origin, []);
-
   useEffect(() => {
     if (state.variants.length > 0 && !state.preview) {
+      if (variantsIntervalRef.current) window.clearInterval(variantsIntervalRef.current);
       variantsIntervalRef.current = window.setInterval(loadVariants, 5000);
+
       return () => {
-        if (variantsIntervalRef.current) clearInterval(variantsIntervalRef.current);
+        if (variantsIntervalRef.current) window.clearInterval(variantsIntervalRef.current);
+        variantsIntervalRef.current = null;
       };
+    }
+
+    if (variantsIntervalRef.current) {
+      window.clearInterval(variantsIntervalRef.current);
+      variantsIntervalRef.current = null;
     }
   }, [state.variants.length, state.preview, loadVariants]);
 
   useEffect(() => {
     if (state.longUrl) {
       updateState({ variants: [], preview: null, error: '' });
+    } else {
+      updateState({ variants: [], preview: null, error: '' });
     }
   }, [state.longUrl, updateState]);
-
-  const techLinks = useMemo(() => TECH_LINKS, []);
 
   return (
     <div className="min-h-screen bg-black flex flex-col">
@@ -440,9 +481,7 @@ function App() {
                   />
                 </div>
               </div>
-              <h1 className="text-4xl sm:text-6xl font-bold text-white tracking-tight">
-                KlpSu
-              </h1>
+              <h1 className="text-4xl sm:text-6xl font-bold text-white tracking-tight">KlpSu</h1>
             </div>
             <p className="text-gray-500 text-sm sm:text-base font-medium">
               Профессиональное сокращение ссылок
@@ -464,11 +503,9 @@ function App() {
                     type="url"
                     value={state.longUrl}
                     onChange={e => updateState({ longUrl: e.target.value })}
-                    onKeyPress={e => {
+                    onKeyDown={e => {
                       if (e.key === 'Enter' && !state.preview) {
-                        handleShorten(
-                          state.variants.length > 0 ? true : false,
-                        );
+                        handleShorten(state.variants.length > 0);
                       }
                     }}
                     placeholder="https://example.com/very/long/url..."
@@ -495,23 +532,13 @@ function App() {
                     password={state.password}
                     setPassword={val => updateState({ password: val })}
                     passwordEnabled={state.passwordEnabled}
-                    setPasswordEnabled={enabled =>
-                      updateState({ passwordEnabled: enabled })
-                    }
+                    setPasswordEnabled={enabled => updateState({ passwordEnabled: enabled })}
                   />
 
                   <button
-                    onClick={() =>
-                      state.variants.length > 0
-                        ? handleShorten(true)
-                        : handleShorten()
-                    }
+                    onClick={() => handleShorten(state.variants.length > 0)}
                     disabled={state.loading}
-                    aria-label={
-                      state.variants.length > 0
-                        ? 'Создать еще один вариант'
-                        : 'Сократить ссылку'
-                    }
+                    aria-label={state.variants.length > 0 ? 'Создать еще один вариант' : 'Сократить ссылку'}
                     className="group w-full px-6 py-3 bg-emerald-500 text-black rounded-xl font-semibold shadow-md shadow-emerald-500/25 hover:shadow-emerald-500/40 hover:bg-emerald-400 active:bg-emerald-600 disabled:bg-zinc-800 disabled:text-gray-600 disabled:shadow-none transition-all duration-200 text-base touch-manipulation min-h-[44px]"
                   >
                     {state.loading ? (
@@ -537,9 +564,7 @@ function App() {
                   role="alert"
                   className="bg-red-500/10 border border-red-500/50 rounded-md p-3"
                 >
-                  <p className="text-red-400 text-xs sm:text-sm font-medium">
-                    {state.error}
-                  </p>
+                  <p className="text-red-400 text-xs sm:text-sm font-medium">{state.error}</p>
                 </div>
               )}
 
@@ -559,7 +584,7 @@ function App() {
               ) : state.variants.length > 0 && !state.preview ? (
                 <VariantsList
                   variants={state.variants}
-                  currentTime={currentTimeRef.current}
+                  currentTime={now}
                   copiedIndex={state.copiedIndex}
                   onCopy={copyToClipboard}
                 />
@@ -577,7 +602,7 @@ function App() {
                 Сделано с помощью
               </span>
               <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-                {techLinks.map(tech => (
+                {TECH_LINKS.map(tech => (
                   <a
                     key={tech.name}
                     href={tech.url}
