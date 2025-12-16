@@ -4,15 +4,12 @@ import type { UrlVariant } from '../types';
 import { getTimeRemaining } from '../utils/formatting';
 import { QRCodeModal } from './QRCodeModal';
 import { ShareButton } from './ShareButton';
-
-
 interface VariantsListProps {
   variants: UrlVariant[];
   currentTime: Date;
   copiedIndex: number | null;
   onCopy: (url: string, index: number) => void;
 }
-
 
 export const VariantsList = ({
   variants,
@@ -21,8 +18,6 @@ export const VariantsList = ({
   onCopy,
 }: VariantsListProps) => {
   const [qrUrl, setQrUrl] = useState<string | null>(null);
-
-
   const variantItems = useMemo(
     () =>
       variants.map((variant, index) => {
@@ -34,18 +29,14 @@ export const VariantsList = ({
         const clicksPercent = variant.maxClicks
           ? (variant.clicks / variant.maxClicks) * 100
           : 0;
-
-
         return { variant, index, timeLeft, isExpired, isMaxed, clicksPercent };
       }),
     [variants, currentTime],
   );
 
-
   const handleQrOpen = useCallback((url: string) => {
     setQrUrl(url);
   }, []);
-
 
   const handleQrClose = useCallback(() => {
     setQrUrl(null);
@@ -54,7 +45,6 @@ export const VariantsList = ({
   const handleUrlClick = useCallback((url: string) => {
     window.open(url, '_blank', 'noopener,noreferrer');
   }, []);
-
 
   return (
     <div className="space-y-3">
@@ -65,7 +55,6 @@ export const VariantsList = ({
           {variants.length === 1 ? 'вариант' : variants.length < 5 ? 'варианта' : 'вариантов'}
         </p>
       </div>
-
 
       <div className="space-y-2.5" role="list" aria-label="Список коротких ссылок">
         {variantItems.map(({ variant, index, timeLeft, isExpired, isMaxed, clicksPercent }) => (
@@ -89,7 +78,6 @@ export const VariantsList = ({
                 }`}>
                   {variant.rank}
                 </span>
-
                 <div className="flex-1 min-w-0 flex items-center gap-2">
                   <button
                     onClick={() => handleUrlClick(variant.shortUrl)}
@@ -101,7 +89,6 @@ export const VariantsList = ({
                   >
                     {variant.shortUrl}
                   </button>
-
                   <div className="flex items-center gap-1.5 flex-shrink-0">
                     {variant.isMostPopular && (
                       <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-gradient-to-r from-amber-400 to-yellow-400 shadow-sm">
@@ -119,7 +106,6 @@ export const VariantsList = ({
                   </div>
                 </div>
               </div>
-
               <div className="flex flex-wrap gap-2 items-center text-[11px] ml-7">
                 <div className="flex items-center gap-1">
                   <BarChart3
@@ -130,7 +116,6 @@ export const VariantsList = ({
                     {variant.clicks} {variant.maxClicks && `/ ${variant.maxClicks}`}
                   </span>
                 </div>
-
                 {variant.expiresAt && timeLeft && !timeLeft.expired && (
                   <div className="flex items-center gap-1">
                     <Timer
@@ -145,7 +130,6 @@ export const VariantsList = ({
                     </span>
                   </div>
                 )}
-
                 {isExpired && (
                   <span className="text-red-600 dark:text-red-400 font-medium" role="status">
                     Истек
@@ -157,7 +141,6 @@ export const VariantsList = ({
                   </span>
                 )}
               </div>
-
               {variant.maxClicks && (
                 <div
                   className="ml-7"
@@ -181,7 +164,6 @@ export const VariantsList = ({
                   </div>
                 </div>
               )}
-
               <div className="flex gap-1.5 flex-wrap">
                 <button
                   onClick={() => onCopy(variant.shortUrl, index)}
@@ -207,7 +189,6 @@ export const VariantsList = ({
                     </>
                   )}
                 </button>
-
                 <button
                   onClick={() => handleQrOpen(variant.shortUrl)}
                   disabled={isExpired || isMaxed}
@@ -216,14 +197,12 @@ export const VariantsList = ({
                 >
                   <QrCode className="w-3.5 h-3.5" />
                 </button>
-
                 <ShareButton url={variant.shortUrl} />
               </div>
             </div>
           </div>
         ))}
       </div>
-
       {qrUrl && <QRCodeModal url={qrUrl} onClose={handleQrClose} />}
     </div>
   );
