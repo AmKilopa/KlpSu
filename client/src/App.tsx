@@ -10,6 +10,7 @@ import { SkeletonLoader } from './components/SkeletonLoader';
 import type { UrlVariant, PreviewData } from './types';
 import { isValidUrl, isValidCustomCode } from './utils/validation';
 import { ThemeSwitcher } from './components/ThemeSwitcher';
+import { UpdateModal } from './components/UpdateModal';
 
 const API_URL = (import.meta as any).env?.VITE_API_URL ?? '';
 
@@ -480,6 +481,7 @@ function App() {
 
   return (
     <div className="min-h-screen bg-white dark:bg-black flex flex-col">
+      <UpdateModal />
       <ThemeSwitcher />
       <Toaster
         position="top-center"
