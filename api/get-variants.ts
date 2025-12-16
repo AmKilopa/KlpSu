@@ -1,9 +1,11 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
 import { createClient } from '@supabase/supabase-js';
+import { isValidHttpUrl } from './_validation';
 
-const BASE_URL = process.env.NODE_ENV === 'production'
-  ? 'https://klpsu.vercel.app'
-  : 'http://localhost:3000';
+const BASE_URL =
+  process.env.NODE_ENV === 'production'
+    ? 'https://klpsu.vercel.app'
+    : 'http://localhost:3000';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -22,10 +24,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   try {
-    const { longUrl } = req.body;
+    const { longUrl } = req.body as { longUrl?: string };
 
-    if (!longUrl || typeof longUrl !== 'string') {
-      return res.status(400).json({ error: 'URL is required' });
+    if (!isValidHttpUrl(longUrl || '')) {
+      return res.status(400).json({ error: 'Некорректный URL' });
     }
 
     const { data: rawData, error } = await supabase
@@ -87,8 +89,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }));
 
     return res.json({ variants });
-
-  } catch (err) {
+  } catch {
     return res.status(500).json({ error: 'Server error' });
   }
 }

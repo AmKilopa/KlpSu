@@ -1,9 +1,11 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
 import { saveUrl, getUrl } from './_db';
+import { isValidHttpUrl, isValidPasswordLength, isValidShortCode } from './_validation';
 
-const BASE_URL = process.env.NODE_ENV === 'production'
-  ? 'https://klpsu.vercel.app'
-  : 'http://localhost:3000';
+const BASE_URL =
+  process.env.NODE_ENV === 'production'
+    ? 'https://klpsu.vercel.app'
+    : 'http://localhost:3000';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -19,10 +21,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const { shortCode, longUrl, expiresIn, maxClicks, password } = req.body;
+    const { shortCode, longUrl, expiresIn, maxClicks, password } = req.body as {
+      shortCode?: string;
+      longUrl?: string;
+      expiresIn?: string;
+      maxClicks?: number;
+      password?: string;
+    };
 
-    if (!shortCode || !longUrl) {
-      return res.status(400).json({ error: 'Short code and URL are required' });
+    if (!shortCode || !isValidShortCode(shortCode)) {
+      return res.status(400).json({ error: 'Некорректный короткий код' });
+    }
+
+    if (!longUrl || !isValidHttpUrl(longUrl)) {
+      return res.status(400).json({ error: 'Некорректный URL' });
+    }
+
+    if (password && !isValidPasswordLength(password)) {
+      return res.status(400).json({ error: 'Некорректная длина пароля' });
     }
 
     const codeExists = await getUrl(shortCode);
@@ -34,7 +50,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     return res.json({
       shortUrl: `${BASE_URL}/${shortCode}`,
-      shortCode
+      shortCode,
     });
   } catch {
     return res.status(500).json({ error: 'Server error' });

@@ -232,9 +232,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     if (urlData.isMaxedOut) {
       res.setHeader('Content-Type', 'text/html; charset=utf-8');
-      return res
-        .status(410)
-        .send(renderMaxClicks(urlData.clicks, urlData.maxClicks || 0));
+      return res.status(410).send(renderMaxClicks(urlData.clicks, urlData.maxClicks || 0));
     }
 
     if (urlData.hasPassword) {
@@ -249,29 +247,29 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           res.setHeader('Content-Type', 'text/html; charset=utf-8');
           return res
             .status(401)
-            .send(renderPasswordPrompt(shortCode, 'Введите пароль'));
+            .send(renderPasswordPrompt(shortCode as string, 'Введите пароль'));
         }
 
-        const isValid = await verifyPassword(shortCode, password);
+        const isValid = await verifyPassword(shortCode as string, password);
 
         if (!isValid) {
           res.setHeader('Content-Type', 'text/html; charset=utf-8');
           return res
             .status(401)
-            .send(renderPasswordPrompt(shortCode, 'Неверный пароль'));
+            .send(renderPasswordPrompt(shortCode as string, 'Неверный пароль'));
         }
 
-        await incrementClicks(shortCode);
+        await incrementClicks(shortCode as string);
         res.setHeader('Content-Type', 'text/html; charset=utf-8');
         res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
         return res.status(200).send(renderRedirectWithMessage(urlData.longUrl));
       }
 
       res.setHeader('Content-Type', 'text/html; charset=utf-8');
-      return res.status(200).send(renderPasswordPrompt(shortCode));
+      return res.status(200).send(renderPasswordPrompt(shortCode as string));
     }
 
-    await incrementClicks(shortCode);
+    await incrementClicks(shortCode as string);
     res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
     return res.redirect(308, urlData.longUrl);
   } catch {
