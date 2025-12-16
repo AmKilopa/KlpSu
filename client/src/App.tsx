@@ -102,8 +102,9 @@ function App() {
 
   const [now, setNow] = useState(() => new Date());
 
-  const variantsIntervalRef = useRef<number | null>(null);
   const variantsAbortRef = useRef<AbortController | null>(null);
+  const pollingIntervalRef = useRef<number | null>(null);
+  const lastVariantsHashRef = useRef<string>('');
 
   const updateState = useCallback((updates: Partial<AppState>) => {
     setState(prev => ({ ...prev, ...updates }));
@@ -116,12 +117,19 @@ function App() {
     }
   }, []);
 
+  const stopPolling = useCallback(() => {
+    if (pollingIntervalRef.current) {
+      window.clearInterval(pollingIntervalRef.current);
+      pollingIntervalRef.current = null;
+    }
+  }, []);
+
   useEffect(() => {
     return () => {
-      if (variantsIntervalRef.current) window.clearInterval(variantsIntervalRef.current);
       abortVariantsRequest();
+      stopPolling();
     };
-  }, [abortVariantsRequest]);
+  }, [abortVariantsRequest, stopPolling]);
 
   useEffect(() => {
     if (state.variants.length > 0 && !state.preview) {
@@ -207,7 +215,14 @@ function App() {
       );
 
       if (Array.isArray(response.data?.variants)) {
-        updateState({ variants: response.data.variants });
+        const newHash = JSON.stringify(
+          response.data.variants.map((v: UrlVariant) => ({ c: v.shortCode, cl: v.clicks })),
+        );
+
+        if (newHash !== lastVariantsHashRef.current) {
+          lastVariantsHashRef.current = newHash;
+          updateState({ variants: response.data.variants });
+        }
       }
     } catch (err: any) {
       if (err?.name !== 'CanceledError' && err?.name !== 'AbortError') {
@@ -215,6 +230,41 @@ function App() {
       }
     }
   }, [state.longUrl, abortVariantsRequest, updateState]);
+
+  useEffect(() => {
+    const shouldWatch =
+      Boolean(state.longUrl) && isValidUrl(state.longUrl) && state.variants.length > 0;
+
+    if (!shouldWatch) {
+      stopPolling();
+      return;
+    }
+
+    stopPolling();
+
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        stopPolling();
+      } else {
+        stopPolling();
+        loadVariants();
+        pollingIntervalRef.current = window.setInterval(() => {
+          loadVariants();
+        }, 5000);
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    pollingIntervalRef.current = window.setInterval(() => {
+      loadVariants();
+    }, 5000);
+
+    return () => {
+      stopPolling();
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [state.longUrl, state.variants.length, loadVariants, stopPolling]);
 
   const handleShorten = useCallback(
     async (forceNew?: boolean) => {
@@ -383,14 +433,7 @@ function App() {
     } finally {
       updateState({ loading: false });
     }
-  }, [
-    state.preview,
-    state.passwordEnabled,
-    state.password,
-    checkCodeExists,
-    loadVariants,
-    updateState,
-  ]);
+  }, [state.preview, state.passwordEnabled, state.password, checkCodeExists, loadVariants, updateState]);
 
   const handleReject = useCallback(() => {
     updateState({
@@ -428,29 +471,11 @@ function App() {
   );
 
   useEffect(() => {
-    if (state.variants.length > 0 && !state.preview) {
-      if (variantsIntervalRef.current) window.clearInterval(variantsIntervalRef.current);
-      variantsIntervalRef.current = window.setInterval(loadVariants, 5000);
-
-      return () => {
-        if (variantsIntervalRef.current) window.clearInterval(variantsIntervalRef.current);
-        variantsIntervalRef.current = null;
-      };
-    }
-
-    if (variantsIntervalRef.current) {
-      window.clearInterval(variantsIntervalRef.current);
-      variantsIntervalRef.current = null;
-    }
-  }, [state.variants.length, state.preview, loadVariants]);
-
-  useEffect(() => {
-    if (state.longUrl) {
-      updateState({ variants: [], preview: null, error: '' });
-    } else {
-      updateState({ variants: [], preview: null, error: '' });
-    }
-  }, [state.longUrl, updateState]);
+    updateState({ variants: [], preview: null, error: '' });
+    abortVariantsRequest();
+    stopPolling();
+    lastVariantsHashRef.current = '';
+  }, [state.longUrl, updateState, abortVariantsRequest, stopPolling]);
 
   return (
     <div className="min-h-screen bg-black flex flex-col">
@@ -474,11 +499,7 @@ function App() {
               <div className="relative">
                 <div className="absolute inset-0 rounded-xl bg-emerald-500/40 blur-xl opacity-60" />
                 <div className="relative p-2 sm:p-2.5 bg-emerald-500 rounded-xl shadow-lg shadow-emerald-500/40">
-                  <Link2
-                    className="w-6 sm:w-7 h-6 sm:h-7 text-black"
-                    strokeWidth={2.5}
-                    aria-hidden
-                  />
+                  <Link2 className="w-6 sm:w-7 h-6 sm:h-7 text-black" strokeWidth={2.5} aria-hidden />
                 </div>
               </div>
               <h1 className="text-4xl sm:text-6xl font-bold text-white tracking-tight">KlpSu</h1>
@@ -538,7 +559,9 @@ function App() {
                   <button
                     onClick={() => handleShorten(state.variants.length > 0)}
                     disabled={state.loading}
-                    aria-label={state.variants.length > 0 ? 'Создать еще один вариант' : 'Сократить ссылку'}
+                    aria-label={
+                      state.variants.length > 0 ? 'Создать еще один вариант' : 'Сократить ссылку'
+                    }
                     className="group w-full px-6 py-3 bg-emerald-500 text-black rounded-xl font-semibold shadow-md shadow-emerald-500/25 hover:shadow-emerald-500/40 hover:bg-emerald-400 active:bg-emerald-600 disabled:bg-zinc-800 disabled:text-gray-600 disabled:shadow-none transition-all duration-200 text-base touch-manipulation min-h-[44px]"
                   >
                     {state.loading ? (
